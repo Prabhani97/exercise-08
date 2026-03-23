@@ -1,0 +1,144 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+# Practice Simple Linear Regression
+
+First I am going to install the packages.
+
+```{r}
+install.packages(c("tidyverse", "skimr", "broom", "infer"))
+```
+
+Loading them,
+
+```{r}
+library(tidyverse)
+library(skimr)
+library(broom)
+library(infer)
+```
+
+### Step 01
+
+First we have to load the dataset and do a quick exploratory data analysis for the quantitative variables present in the dataset. First reading the dataset, and storing it ij a tibble called "d".
+
+```{r}
+f <- "https://raw.githubusercontent.com/difiore/ada-datasets/main/Street_et_al_2017.csv"
+
+d <- read_csv(f)
+```
+
+First I have to identify what are the quantitative variables are present in the dataset. Checking the data we have,
+
+```{r}
+glimpse(d)
+```
+
+From what I can see there are two categorical variables and the rest are numeric. To select the data frame which only contains the quantitative variables,
+
+```{r}
+d_quantitative <-  d %>%
+  select(where(is.numeric))
+
+d_quantitative
+```
+
+As suggested, to get a quick summary, we can use skim(),
+
+```{r}
+skim(d_quantitative)
+```
+
+### Step 02
+
+Now we need to plot brain size (ECV) as a function of social group size (Group_size), longevity (Longevity), juvenile period length (Weaning), and reproductive lifespan (Repro_lifespan).
+
+I need four plots for this.
+
+#### First, Let's plot ECV vs Group_size
+
+```{r}
+ggplot(d, aes(x = Group_size, y = ECV)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "ECV as a function of Group Size",
+    x = "Group Size",
+    y = "ECV"
+  )
+```
+
+Next, I am going to plot ECV vs Longevity
+
+```{r}
+ggplot(d, aes(x = Longevity, y = ECV)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "ECV as a function of Longevity",
+    x = "Longevity",
+    y = "ECV"
+  )
+```
+
+#### Then, we can plot ECV vs Weaning
+
+```{r}
+ggplot(d, aes(x = Weaning, y = ECV)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "ECV as a function of Weaning",
+    x = "Weaning",
+    y = "ECV"
+  )
+```
+
+#### Finally, I have to plot ECV vs Reproductive lifespan
+
+```{r}
+ggplot(d, aes(x = Repro_lifespan, y = ECV)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "ECV as a function of Reproductive Lifespan",
+    x = "Reproductive Lifespan",
+    y = "ECV"
+  )
+```
+
+### Step 03
+
+Calculating ordinary least squares regression coefficients beta 1 and beta 0 for ECV as a function of social group size.
+
+That means we need the regression where,
+
+ECV = beta0 + beta1(Group_size)
+
+As instructed I need to remove the rows from my data set where one of these variables is missing. I am using the initial data set for this.
+
+```{r}
+
+d1 <- d %>%
+  select(ECV, Group_size) %>%
+  drop_na()
+
+d1
+nrow(d1)
+```
+
+Calculating this by hand, from the formulas of slope = cov(x,y)/var(x) and Intercept (beta0) = y' - beta1(x')
+
+```{r}
+x <- d1$Group_size
+y <- d1$ECV
+
+beta1 <- cov(x, y) / var(x)
+beta0 <- mean(y) - beta1 * mean(x)
+
+beta1
+beta0
+```
