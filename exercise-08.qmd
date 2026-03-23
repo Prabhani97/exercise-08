@@ -130,15 +130,43 @@ d1
 nrow(d1)
 ```
 
-Calculating this by hand, from the formulas of slope = cov(x,y)/var(x) and Intercept (beta0) = y' - beta1(x')
+Calculating this by hand, from the formulas of slope = cov(x,y)/var(x) and Intercept (beta0) = y' - beta1(x'),
+
+I am using the raw formulas of cov(x,y) and var(x) and direct fucntions as well to calculate this, Both ways give the similar results.
 
 ```{r}
 x <- d1$Group_size
 y <- d1$ECV
+
+variance_x = sum((x - mean(x))^2)
+covariance_x_y = sum((x - mean(x)) * (y - mean(y)))
+
+beta1 <- covariance_x_y / variance_x
+
+beta0 <- mean(y) - beta1 * mean(x)
+
+beta1
+beta0
+
+# Similarly using the direct functions
 
 beta1 <- cov(x, y) / var(x)
 beta0 <- mean(y) - beta1 * mean(x)
 
 beta1
 beta0
+
 ```
+
+### Step 04
+
+Now we have to confirm this using the lm(),
+
+```{r}
+model1 <- lm(ECV ~ Group_size, data = d1)
+
+summary(model1)
+coef(model1)
+```
+
+We can see we are getting the estimations for intercept and slope the same values which are 30.356524 and 2.463071 respectively.
