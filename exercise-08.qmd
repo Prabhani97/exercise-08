@@ -9,6 +9,7 @@ editor: visual
 First I am going to install the packages.
 
 ```{r}
+#| eval: false
 install.packages(c("tidyverse", "skimr", "broom", "infer"))
 ```
 
