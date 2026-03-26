@@ -1,5 +1,5 @@
 ---
-title: "Untitled"
+title: "Exercise 08"
 format: html
 editor: visual
 ---
@@ -12,7 +12,7 @@ First I am going to install the packages.
 install.packages(c("tidyverse", "skimr", "broom", "infer"))
 ```
 
-Loading them,
+Loading the packages installed,
 
 ```{r}
 library(tidyverse)
@@ -31,7 +31,7 @@ f <- "https://raw.githubusercontent.com/difiore/ada-datasets/main/Street_et_al_2
 d <- read_csv(f)
 ```
 
-First I have to identify what are the quantitative variables are present in the dataset. Checking the data we have,
+First I have to identify what are the quantitative variables are present in the dataset. Checking the data we have, below quatitative variables. Inspecting the structure of the dataset,
 
 ```{r}
 glimpse(d)
@@ -46,7 +46,7 @@ d_quantitative <-  d %>%
 d_quantitative
 ```
 
-As suggested, to get a quick summary, we can use skim(),
+As suggested, to get a quick summary, we can use skim() to quickly generate descriptive statistics.
 
 ```{r}
 skim(d_quantitative)
@@ -56,9 +56,11 @@ skim(d_quantitative)
 
 Now we need to plot brain size (ECV) as a function of social group size (Group_size), longevity (Longevity), juvenile period length (Weaning), and reproductive lifespan (Repro_lifespan).
 
+We can use a scatterplot for this. Also I will add a regression line to observe the trend direction.
+
 I need four plots for this.
 
-#### First, Let's plot ECV vs Group_size
+#### First, plotting the ECV vs Group_size
 
 ```{r}
 ggplot(d, aes(x = Group_size, y = ECV)) +
@@ -71,7 +73,7 @@ ggplot(d, aes(x = Group_size, y = ECV)) +
   )
 ```
 
-Next, I am going to plot ECV vs Longevity
+#### Next, I am going to plot ECV vs Longevity
 
 ```{r}
 ggplot(d, aes(x = Longevity, y = ECV)) +
@@ -124,7 +126,7 @@ As instructed I need to remove the rows from my data set where one of these vari
 
 d1 <- d %>%
   select(ECV, Group_size) %>%
-  drop_na()
+  drop_na() # dropping missing values
 
 d1
 nrow(d1)
@@ -135,7 +137,7 @@ Calculating this by hand, from the formulas of slope = cov(x,y)/var(x) and Inter
 I am using the raw formulas of cov(x,y) and var(x) and direct fucntions as well to calculate this, Both ways give the similar results.
 
 ```{r}
-x <- d1$Group_size
+x <- d1$Group_size # Wecan decide what is going to be the predictir and response by assigning to x and y
 y <- d1$ECV
 
 variance_x = sum((x - mean(x))^2)
@@ -160,7 +162,7 @@ beta0
 
 ### Step 04
 
-Now we have to confirm this using the lm(),
+Now we have to confirm this using the lm(), with this I fit a linear regression model using the built in function in R for this.
 
 ```{r}
 model1 <- lm(ECV ~ Group_size, data = d1)
@@ -170,3 +172,187 @@ coef(model1)
 ```
 
 We can see we are getting the estimations for intercept and slope the same values which are 30.356524 and 2.463071 respectively.
+
+### Step 05
+
+Now repeating the same for catarrhines, platyrrhines, and strepsirhines. We need to run separate regressions with each Taxonomic_group. Before everything I need to see the group names available
+
+```{r}
+unique(d$Taxonomic_group)
+```
+
+Now from the data set i can filter only these three requested groups. This will give the data set including only the three specified groups.
+
+```{r}
+d_groups <- d %>%
+  select(ECV, Group_size, Taxonomic_group) %>%
+  drop_na() %>%
+  filter(Taxonomic_group %in% c("Catarrhini", "Platyrrhini", "Strepsirhini"))
+
+d_groups
+```
+
+Then we can run the models for each group. This helps us examine the relationship.
+
+```{r}
+group_models <- d_groups %>%
+  group_by(Taxonomic_group) %>%
+  group_modify(~ {
+    model <- lm(ECV ~ Group_size, data = .x)
+    tidy(model)
+  })
+
+group_models
+```
+
+When comparing the coefficients I got, slopes and intercepts vary across groups.
+
+Specially the intercepts and slopes vary among catarrhines, platyrrhines, and strepsirhines. The intercepts show considerable differences, with catarrhines having a much higher baseline brain size compared to the other groups. Platyrrhines and strepsirhines have lower intercepts indicating smaller baseline ECV values.
+
+The slopes also different. The strongest effect of group size has for the platyrrhines.catarrhines has the weakest effect. This tells us increases in the group size are connected with larger increases in brain size in platyrrhines and strepsirhines compared to catarrhines.
+
+### Step 06
+
+If we take our first regression model, it is the ECV on social group size.
+
+calculating the standard error for the slope coefficient, the 95% CI, and the *p* value associated with this coefficient by hand. I can use the discussed formulas during the class.
+
+```{r}
+yhat <- beta0 + beta1 * x
+residual <- y - yhat
+n <- length(x)
+```
+
+Calculating standard error,
+
+```{r}
+SE_beta1 <- sqrt(sum(residual^2) / ((n - 2) * sum((x - mean(x))^2)))
+SE_beta1
+```
+
+t statistic for slope,
+
+```{r}
+t_beta1 <- beta1 / SE_beta1
+t_beta1
+```
+
+two-tailed p value,
+
+```{r}
+p_beta1 <- 2 * (1 - pt(abs(t_beta1), df = n - 2))
+p_beta1
+```
+
+95% CI for slope,
+
+```{r}
+t_crit <- qt(0.975, df = n - 2)
+
+CI_beta1 <- c(
+  beta1 - t_crit * SE_beta1,
+  beta1 + t_crit * SE_beta1
+)
+
+CI_beta1
+```
+
+Now doing the same using the lm(), I can see the same results except for CI.
+
+```{r}
+model1 <- lm(ECV ~ Group_size, data = d1)
+
+summary(model1)
+coef(model1)
+```
+
+To extract the CI, we can do the following operation and we can see we are getting the same results just as when we calculated it by hand.
+
+```{r}
+confint(model1)
+```
+
+### Step 07
+
+Now with 1000 permutations for a null sampling distribution of the slope. Under the null hypothesis, we can say that there is no relationship between Group_size and ECV. So what I need is to break the association between them by permutting one variable relative to the other
+
+To do that, first I need observed slope
+
+```{r}
+observed_slope <- coef(model1)[2]
+observed_slope
+```
+
+And, now I can generate permutation null distribution
+
+```{r}
+n_perm <- 1000
+
+perm_slopes <- replicate(n_perm, {
+  y_perm <- sample(d1$ECV)
+  coef(lm(y_perm ~ d1$Group_size))[2]
+})
+```
+
+Looking at what we got,
+
+```{r}
+hist(perm_slopes)
+```
+
+now getting the permutation P value from the permutation distribution, we can see that the p value is zero
+
+```{r}
+permutation_p_val <- mean(abs(perm_slopes) >= abs(observed_slope))
+permutation_p_val
+```
+
+The permutation approach tests the null hypothesis by breaking the association between variables. We randomly shuffle ECV values here so that any real association is removed by that.
+
+By getting a zero for the permutation p value I can say that the observed slope is away from the distribution.
+
+### Step 08
+
+Using bootstrapping to generate a 95% CI for my estimate of the slope coefficient using
+
+1\) the quantile method
+
+I am using the exact code we tried during the Tuesday's class. We can use bootstrapping because it's resampling can estimate the variability of the slope. I do not base on any theoretical assumptions here.
+
+```{r}
+n_boot <- 1000
+
+boot_slopes <- replicate(n_boot, {
+  boot_rows <- sample(1:nrow(d1), size = nrow(d1), replace = TRUE)
+  d_boot <- d1[boot_rows, ]
+  coef(lm(ECV ~ Group_size, data = d_boot))[2]
+})
+```
+
+Now looking at it,
+
+```{r}
+hist(boot_slopes)
+```
+
+Let's now calculate bootstrap CI using quantile method (also the same code in the Tuesday's class)
+
+```{r}
+bootstrap_ci_quantile <- quantile(boot_slopes, c(0.025, 0.975))
+bootstrap_ci_quantile
+```
+
+2\) Using theory based method
+
+```{r}
+SE_boot <- sd(boot_slopes)
+
+bootstrap_ci <- c(
+  observed_slope - qt(0.975, df = n - 2) * SE_boot,
+  observed_slope + qt(0.975, df = n - 2) * SE_boot
+)
+
+bootstrap_ci
+```
+
+Clearly zero is not inside any of our calculated CIs. This means our slope cannot be zero, it should be different than zero. This actually provides evidence for the positive relationship between social group size and brain size.
